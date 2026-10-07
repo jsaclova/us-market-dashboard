@@ -94,11 +94,32 @@ export async function GET() {
   }
 }
 
-// ---------- 한글 자동번역 (MyMemory, 신규 기사만·24h 캐시) ----------
+// ---------- 한글 자동번역 (DeepL 우선, MyMemory 폴백 · 24h 캐시) ----------
 const koCache = new Map<string, { text: string; at: number }>();
 const KO_TTL = 24 * 3600 * 1000;
 
-async function translateOne(text: string): Promise<string | null> {
+async function translateDeepL(texts: string[]): Promise<(string | null)[]> {
+  const key = process.env.DEEPL_API_KEY;
+  if (!key) return texts.map(() => null);
+  try {
+    const res = await fetch("https://api-free.deepl.com/v2/translate", {
+      method: "POST",
+      headers: { Authorization: `DeepL-Auth-Key ${key}`, "Content-Type": "application/json" },
+      body: JSON.stringify({ text: texts, source_lang: "EN", target_lang: "KO" }),
+    });
+    if (!res.ok) return texts.map(() => null);
+    const j = await res.json();
+    const out: (string | null)[] = (j.translations ?? []).map((t: { text?: string }) =>
+      typeof t?.text === "string" && t.text.trim() ? t.text : null,
+    );
+    while (out.length < texts.length) out.push(null);
+    return out;
+  } catch {
+    return texts.map(() => null);
+  }
+}
+
+async function translateMyMemory(text: string): Promise<string | null> {
   try {
     const res = await fetch(
       `https://api.mymemory.translated.net/get?q=${encodeURIComponent(text)}&langpair=en|ko`,
@@ -122,12 +143,15 @@ async function attachKorean(items: NewsItem[]): Promise<NewsItem[]> {
     const c = koCache.get(i.id);
     return !(c && now - c.at < KO_TTL);
   });
-  for (let k = 0; k < missing.length; k += 5) {
-    const batch = missing.slice(k, k + 5);
-    const out = await Promise.all(batch.map((b) => translateOne(b.title)));
-    out.forEach((t, idx) => {
-      if (t) koCache.set(batch[idx].id, { text: t, at: now });
-    });
+  // DeepL 배치 1회 → 실패분만 MyMemory 개별
+  const dl = await translateDeepL(missing.map((m) => m.title));
+  for (let k = 0; k < missing.length; k++) {
+    if (dl[k]) {
+      koCache.set(missing[k].id, { text: dl[k] as string, at: now });
+    } else {
+      const t = await translateMyMemory(missing[k].title);
+      if (t) koCache.set(missing[k].id, { text: t, at: now });
+    }
     while (koCache.size > 500) {
       const first = koCache.keys().next().value;
       if (!first) break;
