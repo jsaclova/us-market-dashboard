@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect, useRef, useState } from "react";
 import { PriceChart } from "@/components/PriceChart";
 import { useStockData } from "@/lib/market/useStockData";
 import { cn, fmtPct, fmtUSD } from "@/lib/utils";
@@ -7,7 +8,19 @@ import { cn, fmtPct, fmtUSD } from "@/lib/utils";
 /** 조작 버튼 없는 순수 차트 화면 (자동 순환 전용, Yahoo 실측) */
 export function StockChartView({ symbol, position }: { symbol: string; position: string }) {
   const { quote, history, liveBar, error } = useStockData(symbol);
+  const wrapRef = useRef<HTMLDivElement>(null);
+  const [chartH, setChartH] = useState(420);
   const up = (quote?.change ?? 0) >= 0;
+
+  useEffect(() => {
+    const el = wrapRef.current;
+    if (!el) return;
+    const measure = () => setChartH(Math.max(240, el.clientHeight));
+    measure();
+    const ro = new ResizeObserver(measure);
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, []);
 
   return (
     <div className="flex h-full min-h-0 flex-col text-zinc-50">
@@ -25,8 +38,8 @@ export function StockChartView({ symbol, position }: { symbol: string; position:
         </div>
         <span className="ml-auto text-sm tabular-nums text-zinc-400">{position}</span>
       </div>
-      <div className="min-h-0 flex-1">
-        <PriceChart candles={history} liveBar={liveBar} dark />
+      <div ref={wrapRef} className="min-h-0 flex-1">
+        <PriceChart candles={history} liveBar={liveBar} dark height={chartH} />
       </div>
       <div className="flex gap-4 pt-2 text-xs text-zinc-400">
         <span>H {quote ? fmtUSD(quote.dayHigh) : "—"}</span>

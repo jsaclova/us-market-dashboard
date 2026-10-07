@@ -36,7 +36,7 @@ export const useDashboard = create<DashboardState>()(
     (set) => ({
       timeframe: "6M",
       setTimeframe: (timeframe) => set({ timeframe }),
-      rotateSecs: 10,
+      rotateSecs: 3,
       setRotateSecs: (rotateSecs) => set({ rotateSecs: Math.min(120, Math.max(3, Math.round(rotateSecs))) }),
       tickerSecs: 9,
       setTickerSecs: (tickerSecs) => set({ tickerSecs: Math.min(20, Math.max(2, Math.round(tickerSecs))) }),
@@ -53,15 +53,16 @@ export const useDashboard = create<DashboardState>()(
       showNews: (id) => set((st) => ({ hiddenNews: st.hiddenNews.filter((x) => x !== id) })),
       cycleBatch: 0,
       setCycleBatch: (n) => set({ cycleBatch: n }),
-      resetAdmin: () => set({ rotateSecs: 10, tickerSecs: 9, customStocks: [], hiddenNews: [] }),
+      resetAdmin: () => set({ rotateSecs: 3, tickerSecs: 9, customStocks: [], hiddenNews: [] }),
     }),
     {
       name: "rt-stock-v2",
-      version: 1,
+      version: 2,
       // 기존 저장값(티커 6초)이면 새 기본값 9초로 이전
       migrate: (persisted, version) => {
         const s = (persisted ?? {}) as Partial<DashboardState>;
         if (version === 0 && (s.tickerSecs === 6 || s.tickerSecs === undefined)) s.tickerSecs = 9;
+        if (version < 2 && s.rotateSecs === 10) s.rotateSecs = 3;
         return s as DashboardState;
       },
     },

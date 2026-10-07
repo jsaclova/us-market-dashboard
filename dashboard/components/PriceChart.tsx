@@ -17,6 +17,7 @@ interface Props {
   candles: Candle[];
   liveBar?: Candle | null;
   dark?: boolean;
+  height?: number;
 }
 
 function ma(values: Candle[], period = 20) {
@@ -29,7 +30,7 @@ function ma(values: Candle[], period = 20) {
   return out;
 }
 
-export function PriceChart({ candles, liveBar, dark }: Props) {
+export function PriceChart({ candles, liveBar, dark, height = 420 }: Props) {
   const ref = useRef<HTMLDivElement>(null);
   const chartRef = useRef<IChartApi | null>(null);
   const candleRef = useRef<ISeriesApi<"Candlestick"> | null>(null);
@@ -42,7 +43,7 @@ export function PriceChart({ candles, liveBar, dark }: Props) {
     if (!el) return;
     const chart = createChart(el, {
       width: el.clientWidth,
-      height: 420,
+      height,
       layout: {
         background: { type: ColorType.Solid, color: "transparent" },
         textColor: dark ? "#a1a1aa" : "#52525b",
@@ -105,6 +106,11 @@ export function PriceChart({ candles, liveBar, dark }: Props) {
     });
   }, [dark]);
 
+  // 높이 변경 반영
+  useEffect(() => {
+    chartRef.current?.applyOptions({ height });
+  }, [height]);
+
   // 심볼/타임프레임 변경 시 전량 세팅
   useEffect(() => {
     if (!candleRef.current || candles.length === 0) return;
@@ -132,5 +138,5 @@ export function PriceChart({ candles, liveBar, dark }: Props) {
     });
   }, [liveBar]);
 
-  return <div ref={ref} className="w-full" style={{ height: 420 }} />;
+  return <div ref={ref} className="w-full" style={{ height }} />;
 }
