@@ -30,9 +30,9 @@ export function MarketView() {
   }, []);
 
   return (
-    <div className="grid h-full min-h-0 flex-1 grid-rows-2 gap-4">
+    <div className="flex h-full min-h-0 flex-1 flex-col gap-5">
       {/* 금리 블록: 국채금리 + 역전 모니터 */}
-      <section className="grid min-h-0 flex-1 items-stretch gap-4 xl:grid-cols-2">
+      <section className="grid min-h-0 flex-1 items-stretch gap-5 xl:grid-cols-2">
         {macro && macro.yields.length > 0 && (
           <Card className="h-full min-h-0 overflow-hidden border-zinc-800 bg-[#131722] text-zinc-50">
             <CardHeader className="p-3 pb-1">
@@ -41,8 +41,8 @@ export function MarketView() {
                 <span className="text-xs text-zinc-400">{macro.yields[0]?.time}</span>
               </div>
             </CardHeader>
-            <CardContent className="flex h-full min-h-0 flex-col p-3 pt-1">
-              <div className="grid h-full min-h-0 flex-1 auto-rows-[minmax(0,1fr)] grid-cols-2 gap-2">
+            <CardContent className="flex h-full min-h-0 flex-col p-5 pt-2">
+              <div className="grid h-full min-h-0 flex-1 grid-cols-2 grid-rows-2 gap-4">
                 {macro.yields.map((y) => (
                   <YieldCell key={y.tenor} y={y} />
                 ))}
@@ -54,16 +54,16 @@ export function MarketView() {
       </section>
 
       {/* 시장 블록: 원자재 + 주요통화 */}
-      <section className="grid min-h-0 flex-1 items-stretch gap-4 xl:grid-cols-2">
+      <section className="grid min-h-0 flex-1 items-stretch gap-5 xl:grid-cols-2">
         {macro && macro.commodities.length > 0 && (
           <Card className="h-full min-h-0 overflow-hidden border-zinc-800 bg-[#131722] text-zinc-50">
             <CardHeader className="p-3 pb-1">
               <CardTitle className="text-sm text-zinc-50">원자재 <span className="text-xs font-normal text-zinc-400">선물 실시간 · Yahoo Finance</span></CardTitle>
             </CardHeader>
-            <CardContent className="flex h-full min-h-0 flex-col p-3 pt-1">
-              <div className="grid h-full min-h-0 flex-1 auto-rows-[minmax(0,1fr)] grid-cols-2 gap-2 md:grid-cols-3">
+            <CardContent className="flex h-full min-h-0 flex-col p-5 pt-2">
+              <div className="grid h-full min-h-0 flex-1 grid-cols-2 grid-rows-2 gap-4 md:grid-cols-3">
                 {macro.commodities.map((m) => (
-                  <QuoteCell key={m.code} m={m} />
+                  <QuoteCell key={m.code} m={m} chart={false} />
                 ))}
               </div>
             </CardContent>
@@ -74,8 +74,8 @@ export function MarketView() {
             <CardHeader className="p-3 pb-1">
               <CardTitle className="text-sm text-zinc-50">주요통화 <span className="text-xs font-normal text-zinc-400">실시간 · Yahoo Finance</span></CardTitle>
             </CardHeader>
-            <CardContent className="flex h-full min-h-0 flex-col p-3 pt-1">
-              <div className="grid h-full min-h-0 flex-1 auto-rows-[minmax(0,1fr)] grid-cols-2 gap-2">
+            <CardContent className="flex h-full min-h-0 flex-col p-5 pt-2">
+              <div className="grid h-full min-h-0 flex-1 grid-cols-2 grid-rows-2 gap-4">
                 {macro.fxMajors.map((m) => (
                   <QuoteCell key={m.code} m={m} />
                 ))}
@@ -91,11 +91,11 @@ export function MarketView() {
 function YieldCell({ y }: { y: YieldItem }) {
   const up = y.changeBp >= 0;
   return (
-    <div className="min-h-0 overflow-hidden rounded-lg border border-zinc-800 bg-zinc-950/40 p-2">
-      <div className="text-[11px] text-zinc-400">미국채 {y.tenor}</div>
+    <div className="flex min-h-0 flex-col justify-start gap-1 overflow-hidden rounded-lg border border-zinc-800 bg-zinc-950/40 p-3">
+      <div className="text-xs text-zinc-400">미국채 {y.tenor}</div>
       <div className="flex items-center justify-between gap-1.5 whitespace-nowrap">
-        <span className="text-xl font-bold tabular-nums text-zinc-50">{y.price.toFixed(3)}%</span>
-        <Badge variant={up ? "up" : "down"} className="shrink-0 px-1 text-[10px]">
+        <span className="text-2xl font-bold tabular-nums text-zinc-50">{y.price.toFixed(3)}%</span>
+        <Badge variant={up ? "up" : "down"} className="shrink-0 whitespace-nowrap px-2 text-xs">
           {up ? "▲" : "▼"} {Math.abs(y.changeBp).toFixed(1)}bp
         </Badge>
       </div>
@@ -106,7 +106,7 @@ function YieldCell({ y }: { y: YieldItem }) {
 function Spark({ history, up }: { history: { date: string; value: number }[]; up: boolean }) {
   if (history.length < 2) return null;
   const W = 160;
-  const H = 30;
+  const H = 26;
   const vals = history.map((p) => p.value);
   const min = Math.min(...vals);
   const max = Math.max(...vals);
@@ -122,23 +122,27 @@ function Spark({ history, up }: { history: { date: string; value: number }[]; up
   );
 }
 
-function QuoteCell({ m }: { m: MarketItem }) {
+function QuoteCell({ m, chart = true }: { m: MarketItem; chart?: boolean }) {
   const up = m.change >= 0;
   const dollar = m.unit.startsWith("$");
   const fmt = (n: number) =>
     `${dollar ? "$" : ""}${n.toLocaleString("en-US", { minimumFractionDigits: m.decimals, maximumFractionDigits: m.decimals })}`;
   return (
-    <div className="min-h-0 overflow-hidden rounded-lg border border-zinc-800 bg-zinc-950/40 p-2">
-      <div className="truncate text-[11px] text-zinc-400">{m.name} {m.unit && `· ${m.unit}`}</div>
-      <div className="flex items-center justify-between gap-1.5 whitespace-nowrap">
-        <span className="text-base font-bold tabular-nums text-zinc-50">{fmt(m.price)}</span>
-        <Badge variant={up ? "up" : "down"} className="shrink-0 px-1 text-[10px]">
-          {up ? "▲" : "▼"} {fmtPct(m.changePct)}
-        </Badge>
+    <div className="flex min-h-0 items-center gap-3 overflow-hidden rounded-lg border border-zinc-800 bg-zinc-950/40 p-3">
+      <div className="min-w-0 flex-1">
+        <div className="truncate text-xs text-zinc-400">{m.name} {m.unit && `· ${m.unit}`}</div>
+        <div className="flex items-center justify-between gap-1.5 whitespace-nowrap">
+          <span className="text-xl font-bold tabular-nums text-zinc-50">{fmt(m.price)}</span>
+          <Badge variant={up ? "up" : "down"} className="shrink-0 whitespace-nowrap px-2 text-xs">
+            {up ? "▲" : "▼"} {fmtPct(m.changePct)}
+          </Badge>
+        </div>
       </div>
-      <div className="mt-1">
-        <Spark history={m.history} up={up} />
-      </div>
+      {chart && (
+        <div className="w-[110px] shrink-0 self-center">
+          <Spark history={m.history} up={up} />
+        </div>
+      )}
     </div>
   );
 }
@@ -169,7 +173,7 @@ function InversionWidget({ yields, spread }: { yields: YieldItem[]; spread: Spre
   const zeroY = sY(0);
 
   return (
-    <Card className={`h-full min-h-0 overflow-hidden border-zinc-800 bg-[#131722] text-zinc-50 ${spread.inverted ? "border-red-400 dark:border-red-800" : ""}`}>
+    <Card className={`overflow-hidden border-zinc-800 bg-[#131722] text-zinc-50 ${spread.inverted ? "border-red-400 dark:border-red-800" : ""}`}>
       <CardHeader className="p-3 pb-1">
         <div className="flex items-center justify-between">
           <CardTitle className="text-sm text-zinc-50">

@@ -20,7 +20,7 @@ export interface IntradayPoint {
 export interface IndexFuture {
   symbol: string;
   name: string;
-  /** finviz식 ETF 파생 실시간가 */
+  /** CME/CBOT 선물 실시간가 */
   price: number;
   prevClose: number;
   change: number;
@@ -31,9 +31,9 @@ export interface IndexFuture {
 }
 
 const MAP = [
-  { symbol: "SP500", name: "S&P 500", yahoo: "^GSPC", etf: "SPY" },
-  { symbol: "NASDAQ", name: "Nasdaq", yahoo: "^IXIC", etf: "QQQ" },
-  { symbol: "DJI", name: "Dow Jones", yahoo: "^DJI", etf: "DIA" },
+  { symbol: "SP500", name: "S&P 500", yahoo: "ES=F" },
+  { symbol: "NASDAQ", name: "Nasdaq 100", yahoo: "NQ=F" },
+  { symbol: "DJI", name: "Dow Jones", yahoo: "YM=F" },
 ];
 
 let cache: { at: number; data: IndexFuture[] } | null = null;
@@ -59,14 +59,12 @@ function pickPrev(closes: number[]): number | null {
 
 async function fetchOne(m: (typeof MAP)[number]): Promise<IndexFuture | null> {
   try {
-    const [daily, etfDaily, etfIntra] = await Promise.all([
-      getJson(`https://query1.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(m.yahoo)}?interval=1d&range=3mo`),
-      getJson(`https://query1.finance.yahoo.com/v8/finance/chart/${m.etf}?interval=1d&range=5d`),
-      getJson(`https://query1.finance.yahoo.com/v8/finance/chart/${m.etf}?interval=1m&range=1d&includePrePost=true`),
+    const [daily, intra] = await Promise.all([
+      getJson(`https://query1.finance.yahoo.com/v8/finance/chart/${m.yahoo}?interval=1d&range=3mo`),
+      getJson(`https://query1.finance.yahoo.com/v8/finance/chart/${m.yahoo}?interval=5m&range=1d`),
     ]);
     const result = daily?.chart?.result?.[0];
     if (!result) return null;
-    const meta = result.meta ?? {};
     const ts: number[] = result.timestamp ?? [];
     const q = result.indicators?.quote?.[0] ?? {};
     const history: IndexHistoryPoint[] = [];
@@ -82,21 +80,15 @@ async function fetchOne(m: (typeof MAP)[number]): Promise<IndexFuture | null> {
       });
     });
 
-    const indexCloses = history.map((h) => h.close);
-    const indexPrev = pickPrev(indexCloses);
-    const etfResult = etfDaily?.chart?.result?.[0];
-    const etfCloses: number[] = (etfResult?.indicators?.quote?.[0]?.close ?? []).filter(
-      (v: unknown) => typeof v === "number",
-    );
-    const etfPrev = pickPrev(etfCloses);
-    if (typeof indexPrev !== "number" || typeof etfPrev !== "number" || etfPrev === 0) return null;
-    const ratio = indexPrev / etfPrev;
+    const prevClose = pickPrev(history.map((h) => h.close));
+    if (typeof prevClose !== "number") return null;
+    const r2 = (n: number) => Math.round(n * 100) / 100;
 
-    // ETF 인트라데이 → 지수 스케일로 환산 (finviz ETF DERIVED 방식)
+    // 당일 5분봉 (이상 틱 제거)
     const intraday: IntradayPoint[] = [];
-    let etfLive: number | null = null;
-    let etfTime = 0;
-    const ir = etfIntra?.chart?.result?.[0];
+    let live = 0;
+    let liveTime = 0;
+    const ir = intra?.chart?.result?.[0];
     if (ir) {
       const its: number[] = ir.timestamp ?? [];
       const iq = ir.indicators?.quote?.[0] ?? {};
@@ -105,33 +97,30 @@ async function fetchOne(m: (typeof MAP)[number]): Promise<IndexFuture | null> {
       its.forEach((t, i) => {
         const c = at(iq.close, i);
         if (c === null) return;
-        // 이상 틱 제거 (스케일 후 지수 기준 4% 이상 이탈)
-        if (Math.abs(c * ratio - indexPrev) / indexPrev > 0.04) return;
-        const sc = (v: number | null) => (v === null ? Math.round(c * ratio * 100) / 100 : Math.round(v * ratio * 100) / 100);
+        if (Math.abs(c - prevClose) / prevClose > 0.04) return;
         intraday.push({
           t,
-          o: sc(at(iq.open, i)),
-          h: sc(at(iq.high, i)),
-          l: sc(at(iq.low, i)),
-          c: sc(c),
+          o: at(iq.open, i) ?? c,
+          h: at(iq.high, i) ?? c,
+          l: at(iq.low, i) ?? c,
+          c,
           vol: at(iq.volume, i) ?? 0,
         });
-        etfLive = c;
-        etfTime = t;
+        live = c;
+        liveTime = t;
       });
     }
 
-    const r2 = (n: number) => Math.round(n * 100) / 100;
-    const price = etfLive !== null ? r2(etfLive * ratio) : r2(history[history.length - 1]?.close ?? NaN);
-    if (typeof price !== "number") return null;
+    const price = live ? r2(live) : r2(history[history.length - 1]?.close ?? NaN);
+    if (typeof price !== "number" || Number.isNaN(price)) return null;
     return {
       symbol: m.symbol,
       name: m.name,
       price,
-      prevClose: r2(indexPrev),
-      change: r2(price - indexPrev),
-      changePct: r2(((price - indexPrev) / indexPrev) * 100),
-      time: (etfTime || Date.now() / 1000) * 1000,
+      prevClose: r2(prevClose),
+      change: r2(price - prevClose),
+      changePct: r2(((price - prevClose) / prevClose) * 100),
+      time: (liveTime || Date.now() / 1000) * 1000,
       history: history.slice(-66),
       intraday: intraday.slice(-300),
     };

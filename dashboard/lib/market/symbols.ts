@@ -6,7 +6,7 @@ export interface Instrument {
 
 export const INDICES: Instrument[] = [
   { symbol: "SP500", name: "S&P 500", base: 5850 },
-  { symbol: "NASDAQ", name: "Nasdaq Composite", base: 18250 },
+  { symbol: "NASDAQ", name: "Nasdaq 100", base: 18250 },
   { symbol: "DJI", name: "Dow Jones", base: 44200 },
 ];
 

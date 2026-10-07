@@ -209,7 +209,7 @@ export function IndexCard({ name, fut, active, onSelect }: Props) {
           <div className="flex items-start justify-between gap-2">
             <div>
               <div className="text-xl font-bold tracking-tight">{name}</div>
-              <div className="text-[10px] tracking-wide text-zinc-500">ETF DERIVED</div>
+              <div className="text-[10px] tracking-wide text-zinc-500">FUTURES · CME</div>
             </div>
             <div className="text-xs text-zinc-400">{dateStr}</div>
             <div className={cn("text-lg font-bold tabular-nums", up ? "text-emerald-400" : "text-red-400")}>
