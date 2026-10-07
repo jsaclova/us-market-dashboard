@@ -1,0 +1,8 @@
+# TradingView 참조용 클론은 버전관리에서 제외 (수백 MB)
+lightweight-charts/
+# Next.js
+dashboard/node_modules/
+dashboard/.next/
+dashboard/out/
+*.log
+.DS_Store
