@@ -1,28 +1,14 @@
 "use client";
 
 import Link from "next/link";
-import { useRouter } from "next/navigation";
-import { useEffect } from "react";
 import { StockChartView } from "@/components/StockShowcase";
 import { Button } from "@/components/ui/button";
 import { useStocks } from "@/lib/market/useStocks";
-import { useDashboard } from "@/lib/portfolio/store";
 
-/** 종목 상세: 다음 종목으로 자동 전환 (수동 조작 없음) */
+/** 종목 상세: 자동 사이클이 화면 전환 담당 (수동 조작 없음) */
 export function StockDetail({ symbol }: { symbol: string }) {
-  const router = useRouter();
   const stocks = useStocks();
-  const rotateSecs = useDashboard((s) => s.rotateSecs);
   const idx = stocks.findIndex((s) => s.symbol === symbol);
-
-  useEffect(() => {
-    if (stocks.length === 0) return;
-    const id = setInterval(() => {
-      const i = stocks.findIndex((x) => x.symbol === symbol);
-      router.push(`/stock/${stocks[(i + 1) % stocks.length].symbol}`);
-    }, Math.max(3, rotateSecs) * 1000);
-    return () => clearInterval(id);
-  }, [stocks, symbol, router, rotateSecs]);
 
   if (idx < 0) {
     return (

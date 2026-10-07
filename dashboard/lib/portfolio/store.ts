@@ -25,6 +25,9 @@ interface DashboardState {
   hiddenNews: string[];
   hideNews: (id: string) => void;
   showNews: (id: string) => void;
+  /** 자동 사이클용 종목 배치 (0~5) */
+  cycleBatch: number;
+  setCycleBatch: (n: number) => void;
   resetAdmin: () => void;
 }
 
@@ -48,6 +51,8 @@ export const useDashboard = create<DashboardState>()(
       hideNews: (id) =>
         set((st) => (st.hiddenNews.includes(id) ? st : { hiddenNews: [...st.hiddenNews, id] })),
       showNews: (id) => set((st) => ({ hiddenNews: st.hiddenNews.filter((x) => x !== id) })),
+      cycleBatch: 0,
+      setCycleBatch: (n) => set({ cycleBatch: n }),
       resetAdmin: () => set({ rotateSecs: 10, tickerSecs: 9, customStocks: [], hiddenNews: [] }),
     }),
     {

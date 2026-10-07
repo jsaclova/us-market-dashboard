@@ -1,0 +1,10 @@
+services:
+  us-market-dashboard:
+    build: ./dashboard
+    container_name: us-market-dashboard
+    ports:
+      - "3000:3000"
+    environment:
+      # DeepL 번역 키 (없으면 MyMemory 폴백)
+      - DEEPL_API_KEY=${DEEPL_API_KEY:-}
+    restart: unless-stopped

@@ -13,6 +13,7 @@ const geistMono = Geist_Mono({
 });
 
 import { NewsTicker } from "@/components/NewsTicker";
+import { AutoCycle } from "@/components/AutoCycle";
 import { Providers } from "@/components/providers";
 
 export const metadata: Metadata = {
@@ -29,6 +30,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
     >
       <body className="min-h-full flex flex-col">
         <Providers>
+          <AutoCycle />
           <div className="min-h-screen">{children}</div>
           <NewsTicker />
         </Providers>

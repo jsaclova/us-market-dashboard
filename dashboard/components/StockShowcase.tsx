@@ -10,13 +10,13 @@ export function StockChartView({ symbol, position }: { symbol: string; position:
   const up = (quote?.change ?? 0) >= 0;
 
   return (
-    <div className="flex h-full min-h-0 flex-col">
+    <div className="flex h-full min-h-0 flex-col text-zinc-50">
       <div className="flex flex-wrap items-end gap-x-2 pb-1">
-        <div className="text-2xl font-bold">
+        <div className="text-2xl font-bold text-white">
           {symbol}
         </div>
         <div className="flex items-baseline gap-2">
-          <span className="text-2xl font-bold tabular-nums">
+          <span className="text-2xl font-bold tabular-nums text-white">
             {error ? "조회 실패" : quote ? fmtUSD(quote.price) : "—"}
           </span>
           <span className={cn("text-lg font-semibold tabular-nums", up ? "text-emerald-400" : "text-red-400")}>
